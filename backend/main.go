@@ -71,6 +71,8 @@ func main() {
 	http.HandleFunc("/api/hello", routes.HelloHandler)
 	http.HandleFunc("/api/time", routes.TimeHandler)
 	http.HandleFunc("/api/trades", routes.TradesHandler)
+	http.HandleFunc("/api/price", routes.MarketPriceHandler)
+
 
 	// Start server
 	fmt.Println("🚀 Server running on port 8080")
