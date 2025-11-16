@@ -1,140 +1,78 @@
 package main
 
 import (
-	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
-	_ "github.com/lib/pq"
+	"github.com/Tradbot-ai/Tradbot/backend/database"
+	"github.com/Tradbot-ai/Tradbot/backend/routes"
 )
 
-var db *sql.DB
-
 func main() {
-    // Connect to PostgreSQL
-    connStr := "user=postgres dbname=trades sslmode=disable"
-    db, err := sql.Open("postgres", connStr)
-    if err != nil {
-        log.Fatal("❌ Failed to connect to DB:", err)
-    }
-    defer db.Close()
+	// Initialize DB
+	database.InitDB()
 
-    fmt.Println("✅ Connected to PostgreSQL")
-
-    // Define API endpoints
-    http.HandleFunc("/api/hello", func(w http.ResponseWriter, r *http.Request) {
-        json.NewEncoder(w).Encode(map[string]string{"message": "Hello from Go backend!"})
-    })
-
-    http.HandleFunc("/api/time", func(w http.ResponseWriter, r *http.Request) {
-        json.NewEncoder(w).Encode(map[string]string{"server_time": fmt.Sprint(time.Now())})
-    })
-
-    // Trades API
-    http.HandleFunc("/api/trades", func(w http.ResponseWriter, r *http.Request) {
-        if r.Method == http.MethodGet {
-            rows, err := db.Query("SELECT symbol, quantity, price FROM trades")
-            if err != nil {
-                http.Error(w, err.Error(), http.StatusInternalServerError)
-                return
-            }
-            defer rows.Close()
-
-            var trades []map[string]interface{}
-            for rows.Next() {
-                var symbol string
-                var quantity int
-                var price float64
-                rows.Scan(&symbol, &quantity, &price)
-                trades = append(trades, map[string]interface{}{
-                    "symbol":   symbol,
-                    "quantity": quantity,
-                    "price":    price,
-                })
-            }
-            json.NewEncoder(w).Encode(trades)
-        }
-    })
-
-    fmt.Println("🚀 Server running on port 8080")
-    log.Fatal(http.ListenAndServe(":8080", nil))
-}
-
-
-// ---- Handlers ----
-
-func handleHello(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"message": "Hello from Go backend 👋",
+	// Root dashboard
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		html := `
+		<html>
+			<head>
+				<title>Tradbot Backend</title>
+				<style>
+					body {
+						font-family: Arial, sans-serif;
+						background-color: #0d1117;
+						color: #e6edf3;
+						text-align: center;
+						padding: 40px;
+					}
+					h1 {
+						color: #58a6ff;
+					}
+					.box {
+						padding: 20px;
+						background-color: #161b22;
+						border-radius: 10px;
+						width: 400px;
+						margin: 20px auto;
+						box-shadow: 0 0 10px rgba(255,255,255,0.1);
+					}
+					a {
+						color: #58a6ff;
+						text-decoration: none;
+						font-size: 18px;
+					}
+					a:hover {
+						text-decoration: underline;
+					}
+				</style>
+			</head>
+			<body>
+				<h1>🚀 Tradbot Backend Running</h1>
+				<div class="box">
+					<p>Your Go server is live!</p>
+					<h3>API Endpoints:</h3>
+					<p><a href="/api/hello">/api/hello</a></p>
+					<p><a href="/api/time">/api/time</a></p>
+					<p><a href="/api/trades">/api/trades</a></p>
+					<p style="margin-top:20px; font-size:14px; opacity:0.7;">
+						React frontend runs on <b>http://localhost:3000</b>
+					</p>
+				</div>
+			</body>
+		</html>
+		`
+		w.Write([]byte(html))
 	})
-}
 
-func handleTime(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"server_time": time.Now().Format(time.RFC3339),
-	})
-}
+	// API routes
+	http.HandleFunc("/api/hello", routes.HelloHandler)
+	http.HandleFunc("/api/time", routes.TimeHandler)
+	http.HandleFunc("/api/trades", routes.TradesHandler)
 
-func handleTrades(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	if r.Method == "GET" {
-		rows, err := db.Query("SELECT id, symbol, qty, price, created_at FROM trades ORDER BY id DESC")
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		defer rows.Close()
-
-		type Trade struct {
-			ID        int       `json:"id"`
-			Symbol    string    `json:"symbol"`
-			Qty       int       `json:"qty"`
-			Price     float64   `json:"price"`
-			CreatedAt time.Time `json:"created_at"`
-		}
-
-		var trades []Trade
-		for rows.Next() {
-			var t Trade
-			if err := rows.Scan(&t.ID, &t.Symbol, &t.Qty, &t.Price, &t.CreatedAt); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			trades = append(trades, t)
-		}
-
-		json.NewEncoder(w).Encode(trades)
-		return
-	}
-
-	if r.Method == "POST" {
-		var t struct {
-			Symbol string  `json:"symbol"`
-			Qty    int     `json:"qty"`
-			Price  float64 `json:"price"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
-			http.Error(w, "Invalid input", http.StatusBadRequest)
-			return
-		}
-
-		_, err := db.Exec("INSERT INTO trades (symbol, qty, price) VALUES ($1, $2, $3)", t.Symbol, t.Qty, t.Price)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		json.NewEncoder(w).Encode(map[string]string{
-			"status": "Trade added successfully ✅",
-		})
-		return
-	}
-
-	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	// Start server
+	fmt.Println("🚀 Server running on port 8080")
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
