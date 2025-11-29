@@ -235,12 +235,4 @@ Tradbot/
 
 ---
 
-## 🏁 Credits
-Tradbot is built and architected step‑by‑step for **Intekhab**  
-with:
-
-✔ Modular Go backend  
-✔ Modern React UI  
-✔ Real-Time WebSocket Proxy  
-✔ Database‑driven virtual trading  
 
