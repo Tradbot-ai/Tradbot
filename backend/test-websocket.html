@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Trade Data WebSocket Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #0d1117;
+            color: #e6edf3;
+        }
+        .container {
+            background-color: #161b22;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(255,255,255,0.1);
+        }
+        h1 {
+            color: #58a6ff;
+        }
+        input {
+            padding: 10px;
+            width: 200px;
+            margin-right: 10px;
+            background-color: #21262d;
+            color: #e6edf3;
+            border: 1px solid #30363d;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #238636;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #2ea043;
+        }
+        button:disabled {
+            background-color: #30363d;
+            cursor: not-allowed;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .connected {
+            background-color: #238636;
+            color: white;
+        }
+        .disconnected {
+            background-color: #da3633;
+            color: white;
+        }
+        .connecting {
+            background-color: #f85149;
+            color: white;
+        }
+        #messages {
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            background-color: #0d1117;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #30363d;
+        }
+        .message {
+            margin: 5px 0;
+            padding: 8px;
+            background-color: #21262d;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .trade {
+            color: #58a6ff;
+        }
+        .error {
+            color: #f85149;
+        }
+        .info {
+            color: #7c3aed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📡 Live Trade Data WebSocket Test</h1>
+        
+        <div>
+            <input type="text" id="symbolInput" placeholder="Enter symbol (e.g., AAPL, TSLA)" value="AAPL">
+            <button id="connectBtn" onclick="connect()">Connect</button>
+            <button id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
+        </div>
+        
+        <div id="status" class="status disconnected">Disconnected</div>
+        
+        <div id="messages"></div>
+    </div>
+
+    <script>
+        let ws = null;
+        const symbolInput = document.getElementById('symbolInput');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const statusDiv = document.getElementById('status');
+        const messagesDiv = document.getElementById('messages');
+
+        function addMessage(message, type = 'info') {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${type}`;
+            msgDiv.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            messagesDiv.appendChild(msgDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function updateStatus(status, className) {
+            statusDiv.textContent = status;
+            statusDiv.className = `status ${className}`;
+        }
+
+        function connect() {
+            const symbol = symbolInput.value.trim();
+            if (!symbol) {
+                alert('Please enter a symbol');
+                return;
+            }
+
+            const wsUrl = `ws://localhost:8080/api/live?symbol=${encodeURIComponent(symbol)}`;
+            addMessage(`Connecting to ${wsUrl}...`, 'info');
+            updateStatus('Connecting...', 'connecting');
+
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                addMessage('✅ WebSocket connected!', 'info');
+                updateStatus('Connected', 'connected');
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+                symbolInput.disabled = true;
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'trade' && data.data && data.data.length > 0) {
+                        const trade = data.data[0];
+                        addMessage(
+                            `💰 Trade: ${trade.s || 'N/A'} | Price: $${trade.p} | Volume: ${trade.v} | Time: ${new Date(trade.t * 1000).toLocaleTimeString()}`,
+                            'trade'
+                        );
+                    } else {
+                        addMessage(`📦 Message: ${JSON.stringify(data, null, 2)}`, 'info');
+                    }
+                } catch (err) {
+                    addMessage(`❌ Parse error: ${err.message}`, 'error');
+                    addMessage(`Raw data: ${event.data}`, 'error');
+                }
+            };
+
+            ws.onerror = (error) => {
+                addMessage(`❌ WebSocket error: ${error}`, 'error');
+                updateStatus('Error', 'disconnected');
+            };
+
+            ws.onclose = (event) => {
+                addMessage(`🔌 WebSocket closed. Code: ${event.code}, Reason: ${event.reason || 'N/A'}`, 'info');
+                updateStatus('Disconnected', 'disconnected');
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                symbolInput.disabled = false;
+            };
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+
+        // Allow Enter key to connect
+        symbolInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !connectBtn.disabled) {
+                connect();
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+

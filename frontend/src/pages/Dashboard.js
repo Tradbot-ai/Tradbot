@@ -1,7 +1,13 @@
+// pages/Dashboard.js
+
 import { useEffect, useState } from "react";
 import Header from "../components/Header";
 import TradeForm from "../components/TradeForm";
 import TradeList from "../components/TradeList";
+import MarketPrice from "../components/MarketPrice";
+import LiveStreamer from "../components/LiveStreamer";
+import Section from "../components/Section";
+
 import { fetchHello, fetchTime, fetchTrades } from "../api/api";
 
 export default function Dashboard() {
@@ -9,68 +15,34 @@ export default function Dashboard() {
   const [time, setTime] = useState("Loading...");
   const [trades, setTrades] = useState([]);
 
-  // For Finnhub price testing
-  const [symbol, setSymbol] = useState("");
-  const [priceData, setPriceData] = useState(null);
-
-  // Load initial data
+  // Load backend info + trades
   useEffect(() => {
     fetchHello().then((d) => setMessage(d.message));
     fetchTime().then((d) => setTime(d.server_time));
     fetchTrades().then((d) => setTrades(d));
   }, []);
 
-  // Fetch Market Price from our Go API
-  const getMarketPrice = async () => {
-    if (!symbol) return;
-
-    const res = await fetch(`/api/price?symbol=${symbol}`);
-    const data = await res.json();
-    setPriceData(data);
-  };
-
   return (
     <div style={{ padding: 20 }}>
       <Header />
 
-      {/* Backend info */}
-      <p>{message}</p>
-      <p>Server Time: {time}</p>
+      <Section title="Backend Status">
+        <p>{message}</p>
+        <p>Server Time: {time}</p>
+      </Section>
 
-      <hr />
+      <Section title="Market Price (REST)">
+        <MarketPrice />
+      </Section>
 
-      {/* Finnhub Market Price Section */}
-      <h2>🔍 Get Live Market Price (Finnhub)</h2>
+      <Section title="Live Price Streaming (WebSocket)">
+        <LiveStreamer />
+      </Section>
 
-      <input
-        type="text"
-        placeholder="Enter Stock Symbol (e.g., TCS)"
-        value={symbol}
-        onChange={(e) => setSymbol(e.target.value)}
-        style={{ marginRight: 10 }}
-      />
-      <button onClick={getMarketPrice}>Get Price</button>
-
-      {priceData && (
-        <pre
-          style={{
-            marginTop: 20,
-            padding: 15,
-            background: "#eeeeee",
-            borderRadius: 5,
-          }}
-        >
-          {JSON.stringify(priceData, null, 2)}
-        </pre>
-      )}
-
-      <hr />
-
-      {/* Trade form */}
-      <TradeForm setTrades={setTrades} />
-
-      {/* Trade list */}
-      <TradeList trades={trades} />
+      <Section title="Trades">
+        <TradeForm setTrades={setTrades} />
+        <TradeList trades={trades} />
+      </Section>
     </div>
   );
 }
