@@ -1,234 +1,224 @@
-# 🧠 Tradbot – Local Development Setup
+📈 Tradbot — Virtual Trading App
 
-This guide helps you set up the **Tradbot** project locally.  
-It uses **React (frontend)**, **Go (backend)**, and **PostgreSQL (database)**.
+A full-stack trading simulation platform with real-time data streaming
 
----
+🚀 Overview
 
-## 🧩 1. Prerequisites
+Tradbot is a virtual trading platform built with:
 
-### macOS Dependencies
-Install **Homebrew** (package manager for macOS):
+React (frontend)
 
-```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-```
+Go / Golang (backend)
 
-Then install all required tools:
+PostgreSQL
 
-```bash
-brew install go node postgresql git
-```
+Finnhub WebSocket API (live market data)
 
-Check installations:
+You can:
 
-```bash
-go version
-node -v
-psql --version
-git --version
-```
+✔ Add trades (symbol, qty, price)
+✔ View your trade history
+✔ Fetch live market prices via REST
+✔ Stream real-time market data (US stocks, crypto, forex)
+✔ Use a clean and modular frontend structure
 
----
+🏗 Tech Stack
+🔹 Frontend
 
-## 🗂️ 2. Project Structure
+React (Create React App)
 
-Your repo should look like this:
+Reusable components
 
-```
+Header
+
+TradeForm
+
+TradeList
+
+LiveStream
+
+Suggestions (crypto suggestions)
+
+🔹 Backend
+
+Go (Golang)
+
+Gorilla WebSocket
+
+Finnhub WebSocket API
+
+PostgreSQL + database/sql
+
+REST API + WebSocket API
+
+📁 Project Structure
 Tradbot/
-├── backend/          # Go backend API
-├── frontend/         # React frontend app
-├── SETUP.md          # Setup instructions (this file)
-└── requirements.txt  # Dependency list for collaborators
-```
+│
+├── backend/
+│   ├── main.go
+│   ├── database/
+│   │   └── db.go
+│   ├── routes/
+│       ├── hello.go
+│       ├── time.go
+│       ├── trades.go
+│       ├── market.go
+│       └── live.go
+│   └── go.mod
+│
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── Header.js
+│   │   │   ├── TradeForm.js
+│   │   │   ├── TradeList.js
+│   │   │   ├── LiveStream.js
+│   │   │   └── Suggestions.js
+│   │   ├── pages/
+│   │   │   └── Dashboard.js
+│   │   ├── api/
+│   │   │   └── api.js
+│   │   └── index.js
+│   ├── public/
+│   │   └── index.html
+│   └── package.json
+│
+└── README.md
 
----
+🛢 Database Setup
+1️⃣ Create PostgreSQL database
+CREATE DATABASE trades;
 
-## 🧠 3. Database Setup (PostgreSQL)
+2️⃣ Create table
+CREATE TABLE trades (
+    id SERIAL PRIMARY KEY,
+    symbol TEXT NOT NULL,
+    quantity INT NOT NULL,
+    price FLOAT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
 
-### Start PostgreSQL
-```bash
-brew services start postgresql
-```
-
-### Create database and user
-```bash
-createuser -s postgres || true   # skip if user exists
-createdb -U postgres trading
-```
-
-### Test connection
-```bash
-psql -U postgres trading
-```
-
-If successful, you’ll see:
-```
-trading=#
-```
-
-Exit:
-```
-\q
-```
-
----
-
-## ⚙️ 4. Backend Setup (Go)
-
-### Move to backend folder
-```bash
+🧠 Backend Setup (Go)
+Install dependencies
 cd backend
-```
+go mod tidy
+go get github.com/gorilla/websocket
 
-### Initialize Go module
-```bash
-go mod init github.com/Tradbot-ai/Tradbot/backend
-```
+Environment variables / Config
 
-### Install Fiber web framework
-```bash
-go get github.com/gofiber/fiber/v2
-```
+Inside database/db.go, update:
 
-### Create main file
-```bash
-touch main.go
-```
+user=postgres
+dbname=trades
+password=yourpassword
+host=localhost
+sslmode=disable
 
-Paste the following:
-
-```go
-package main
-
-import "github.com/gofiber/fiber/v2"
-
-func main() {
-	app := fiber.New()
-	app.Get("/", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"message": "Hello from Tradbot backend 🚀"})
-	})
-	app.Listen(":8080")
-}
-```
-
-### Run backend
-```bash
+Start backend
 go run main.go
-```
 
-Open in browser: [http://localhost:8080](http://localhost:8080)
 
-You should see:
-```json
-{"message":"Hello from Tradbot backend 🚀"}
-```
+Backend runs at:
 
----
+👉 http://localhost:8080
 
-## 🌐 5. Frontend Setup (React)
-
-### From project root:
-```bash
+🖥️ Frontend Setup (React)
 cd frontend
-npx create-react-app ./
-```
-
-Run development server:
-```bash
+npm install
 npm start
-```
 
-Frontend runs on [http://localhost:3000](http://localhost:3000)
 
----
+Frontend runs at:
 
-## 🔗 6. Connecting Frontend & Backend
+👉 http://localhost:3000
 
-Add a proxy in your React app’s `package.json`:
-```json
-"proxy": "http://localhost:8080"
-```
+🔌 API Endpoints
+🟢 REST Endpoints
+Method	Endpoint	Description
+GET	/api/hello	Test endpoint
+GET	/api/time	Server time
+GET	/api/trades	Fetch all trades
+POST	/api/trades	Insert a new trade
+GET	/api/price	Get market price (Finnhub)
+🔵 WebSocket Endpoint (Live Data)
+Endpoint	Description
+ws://localhost:8080/api/live?symbol=AAPL	Stream live ticks
 
-Now API calls like:
-```js
-fetch("/api/hello")
-```
-will automatically route to your Go server.
+Backend receives real-time updates from Finnhub and pushes them to the frontend.
 
----
+📡 Live Streaming (Finnhub)
 
-## ⚙️ 7. Environment Variables
+Supported symbols:
 
-Create `.env` file inside `backend/`:
+✔ US Stocks
+AAPL
+MSFT
+TSLA
+AMZN
 
-```bash
-touch .env
-```
+✔ Crypto
+BINANCE:BTCUSDT
+BINANCE:ETHUSDT
+BINANCE:SOLUSDT
 
-Example `.env` content:
-```
-DB_USER=postgres
-DB_PASSWORD=
-DB_NAME=trading
-DB_HOST=localhost
-DB_PORT=5432
-PORT=8080
-```
+✔ Forex
+OANDA:USD_INR
+OANDA:EUR_USD
 
-You’ll later use these in Go via:
-```go
-import "os"
-os.Getenv("DB_USER")
-```
 
----
+❗ NSE equities are not supported in Finnhub's free tier.
 
-## 🧾 8. requirements.txt
+🧩 Frontend Live Streaming
 
-For collaborators, the minimal dependency file:
+Use the <LiveStream /> component:
 
-```
-go
-node
-postgresql
-git
-```
+<LiveStream symbol={symbol} />
 
-They can install everything with:
-```bash
-brew install $(cat requirements.txt)
-```
 
----
+It connects to:
 
-## 🚀 9. Quick Start Summary
+ws://localhost:8080/api/live?symbol=YOUR_SYMBOL
 
-```bash
-# 1️⃣ Clone the repo
-git clone https://github.com/Tradbot-ai/Tradbot.git
-cd Tradbot
 
-# 2️⃣ Install dependencies
-brew install $(cat requirements.txt)
+and streams real-time ticks.
 
-# 3️⃣ Setup database
-brew services start postgresql
-createuser -s postgres || true
-createdb -U postgres trading
+⭐ Suggestions Component
 
-# 4️⃣ Start backend
-cd backend
-go run main.go
+Auto-suggest crypto symbols for live streaming:
 
-# 5️⃣ Start frontend
-cd ../frontend
-npm start
-```
+BINANCE:BTCUSDT
+BINANCE:ETHUSDT
+BINANCE:SOLUSDT
+BINANCE:XRPUSDT
+BINANCE:DOGEUSDT
+BINANCE:ADAUSDT
 
----
+✔ Current Features Implemented
 
-🎯 **You’re all set!**  
-Your team can now develop and run the full-stack trading app locally —  
-trading virtually with live market data (future steps will add APIs for that).
+ Go backend with REST + WebSocket
+
+ PostgreSQL integration
+
+ Live realtime streaming using Finnhub WS
+
+ React dashboard
+
+ Live price UI
+
+ Crypto suggestions
+
+ Trade form + history
+
+ Component separation & clean code
+
+🔮 Upcoming Features
+
+ Candlestick charts (Chart.js)
+
+ Portfolio P/L calculation
+
+ Watchlist with live updates
+
+ User login (JWT)
+
+ Multi-symbol streaming channels
