@@ -1,95 +1,83 @@
-📈 Tradbot — Virtual Trading App
 
-A full-stack trading simulation platform with real-time data streaming
+# 📈 Tradbot - Virtual Trading Platform
 
-🚀 Overview
+A full‑stack **Virtual Trading Application** built using:
 
-Tradbot is a virtual trading platform built with:
+- **Golang (REST + WebSocket Backend)**
+- **React (Frontend UI)**
+- **PostgreSQL (Database)**
+- **Finnhub WebSocket (Real‑time Live Market Streaming)**
+- **Yahoo Finance / Finnhub REST (Price Fetching)**
+- Modular clean architecture (routes/components/api layers)
 
-React (frontend)
+This README covers everything built **till today**, including installation, architecture, API reference, database schema, and frontend UI structure.
 
-Go / Golang (backend)
+---
 
-PostgreSQL
+## 🚀 Features Completed (As of Today)
 
-Finnhub WebSocket API (live market data)
+### ✔ Backend (Golang)
+- REST APIs:
+  - `/api/hello` — Backend connectivity test
+  - `/api/time` — Server time
+  - `/api/trades` — CRUD for virtual trades
+  - `/api/price` — Price fetch (Finnhub REST)
+  - `/api/live` — Live FINNHUB WebSocket stream proxy
+- PostgreSQL database integration
+- WebSocket reverse‑proxy architecture:
+  - Frontend → Go → Finnhub → Go → Frontend
+- Auto reconnect logic with exponential backoff
+- One connection per client
+- Graceful close handling
+- Ping/Pong keepalive
 
-You can:
+### ✔ Frontend (React)
+- Dashboard displaying:
+  - Backend message
+  - Live server time
+  - Trades list
+  - Add trade form
+- Live market price fetch
+- Real‑time WebSocket streaming UI
+- Crypto symbol suggestions
+- Start/Stop streaming buttons
+- Clean modular components:
+  - `LiveStream.js`
+  - `TradeForm.js`
+  - `TradeList.js`
+  - `Header.js`
+  - `Dashboard.js`
 
-✔ Add trades (symbol, qty, price)
-✔ View your trade history
-✔ Fetch live market prices via REST
-✔ Stream real-time market data (US stocks, crypto, forex)
-✔ Use a clean and modular frontend structure
+---
 
-🏗 Tech Stack
-🔹 Frontend
+## 🧱 Architecture Diagram
 
-React (Create React App)
+```
+           ┌──────────────────┐
+           │   React Frontend  │
+           │  (Dashboard UI)   │
+           └───────┬──────────┘
+                   │ REST / WS
+                   ▼
+        ┌──────────────────────────┐
+        │        Go Backend        │
+        │  /api/*  &  /api/live    │
+        └───────────┬─────────────┘
+                    │
+             WebSocket Proxy
+                    │
+                    ▼
+        ┌──────────────────────────┐
+        │     Finnhub WebSocket    │
+        │  wss://ws.finnhub.io     │
+        └──────────────────────────┘
+```
 
-Reusable components
+---
 
-Header
+## 🗄 Database Schema (PostgreSQL)
 
-TradeForm
-
-TradeList
-
-LiveStream
-
-Suggestions (crypto suggestions)
-
-🔹 Backend
-
-Go (Golang)
-
-Gorilla WebSocket
-
-Finnhub WebSocket API
-
-PostgreSQL + database/sql
-
-REST API + WebSocket API
-
-📁 Project Structure
-Tradbot/
-│
-├── backend/
-│   ├── main.go
-│   ├── database/
-│   │   └── db.go
-│   ├── routes/
-│       ├── hello.go
-│       ├── time.go
-│       ├── trades.go
-│       ├── market.go
-│       └── live.go
-│   └── go.mod
-│
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── Header.js
-│   │   │   ├── TradeForm.js
-│   │   │   ├── TradeList.js
-│   │   │   ├── LiveStream.js
-│   │   │   └── Suggestions.js
-│   │   ├── pages/
-│   │   │   └── Dashboard.js
-│   │   ├── api/
-│   │   │   └── api.js
-│   │   └── index.js
-│   ├── public/
-│   │   └── index.html
-│   └── package.json
-│
-└── README.md
-
-🛢 Database Setup
-1️⃣ Create PostgreSQL database
-CREATE DATABASE trades;
-
-2️⃣ Create table
+```sql
 CREATE TABLE trades (
     id SERIAL PRIMARY KEY,
     symbol TEXT NOT NULL,
@@ -97,128 +85,162 @@ CREATE TABLE trades (
     price FLOAT NOT NULL,
     created_at TIMESTAMP DEFAULT NOW()
 );
+```
 
-🧠 Backend Setup (Go)
-Install dependencies
+---
+
+## 🔌 Backend API Routes
+
+### GET `/api/hello`
+Returns simple JSON to verify backend connectivity.
+
+### GET `/api/time`
+Returns live server time.
+
+### GET `/api/trades`
+Returns all trades.
+
+### POST `/api/trades`
+Creates a new trade entry.
+
+### GET `/api/price?symbol=AAPL`
+Fetches live price via Finnhub REST.
+
+### WEBSOCKET `/api/live?symbol=AAPL`
+Starts streaming live price ticks.
+
+---
+
+## 🌐 Frontend Flow
+
+### 1. Fetch Backend Info
+Dashboard loads `/api/hello` and `/api/time`.
+
+### 2. Trades UI
+- TradeForm → POST `/api/trades`
+- TradeList → GET `/api/trades`
+
+### 3. Market Price
+User enters a symbol → `/api/price?symbol=XYZ`
+
+### 4. Live Streaming
+`LiveStream.js` connects via:
+```
+ws://localhost:8080/api/live?symbol=AAPL
+```
+
+Displays tick-by-tick updates.
+
+---
+
+## 🧪 Running the Project
+
+### Backend
+```bash
 cd backend
 go mod tidy
-go get github.com/gorilla/websocket
-
-Environment variables / Config
-
-Inside database/db.go, update:
-
-user=postgres
-dbname=trades
-password=yourpassword
-host=localhost
-sslmode=disable
-
-Start backend
 go run main.go
+```
 
+Runs on:
+```
+http://localhost:8080
+```
 
-Backend runs at:
-
-👉 http://localhost:8080
-
-🖥️ Frontend Setup (React)
+### Frontend
+```bash
 cd frontend
 npm install
 npm start
+```
 
+Runs on:
+```
+http://localhost:3000
+```
 
-Frontend runs at:
+React automatically proxies `/api/*` to Go.
 
-👉 http://localhost:3000
+---
 
-🔌 API Endpoints
-🟢 REST Endpoints
-Method	Endpoint	Description
-GET	/api/hello	Test endpoint
-GET	/api/time	Server time
-GET	/api/trades	Fetch all trades
-POST	/api/trades	Insert a new trade
-GET	/api/price	Get market price (Finnhub)
-🔵 WebSocket Endpoint (Live Data)
-Endpoint	Description
-ws://localhost:8080/api/live?symbol=AAPL	Stream live ticks
+## 📊 Supported Live Symbols (Finnhub Free)
 
-Backend receives real-time updates from Finnhub and pushes them to the frontend.
-
-📡 Live Streaming (Finnhub)
-
-Supported symbols:
-
-✔ US Stocks
+### Stocks
+```
 AAPL
-MSFT
-TSLA
 AMZN
+TSLA
+MSFT
+GOOGL
+```
 
-✔ Crypto
+### Crypto
+```
 BINANCE:BTCUSDT
 BINANCE:ETHUSDT
 BINANCE:SOLUSDT
+BINANCE:BNBUSDT
+```
 
-✔ Forex
+### Forex
+```
 OANDA:USD_INR
 OANDA:EUR_USD
+```
 
+---
 
-❗ NSE equities are not supported in Finnhub's free tier.
+## 📁 Project Structure
 
-🧩 Frontend Live Streaming
+```
+Tradbot/
+│── backend/
+│   ├── main.go
+│   ├── go.mod
+│   ├── database/
+│   ├── routes/
+│   │    ├── hello.go
+│   │    ├── time.go
+│   │    ├── trades.go
+│   │    ├── market.go
+│   │    └── live.go
+│
+│── frontend/
+│   ├── src/
+│   │    ├── components/
+│   │    │    ├── LiveStream.js
+│   │    │    ├── Header.js
+│   │    │    ├── TradeForm.js
+│   │    │    ├── TradeList.js
+│   │    ├── pages/
+│   │    │    ├── Dashboard.js
+│   │    ├── api/
+│   │    │    ├── api.js
+│   │    ├── App.js
+│   │    └── index.js
+│
+│── README.md
+```
 
-Use the <LiveStream /> component:
+---
 
-<LiveStream symbol={symbol} />
+## 🧩 Next Steps Planned
+- User accounts + authentication
+- Watchlist system
+- Live charts (TradingView/Chart.js)
+- P&L calculation engine
+- Alerts system
+- Docker deployment
+- Real NSE data via Angel One
 
+---
 
-It connects to:
+## 🏁 Credits
+Tradbot is built and architected step‑by‑step for **Intekhab**  
+with:
 
-ws://localhost:8080/api/live?symbol=YOUR_SYMBOL
+✔ Modular Go backend  
+✔ Modern React UI  
+✔ Real-Time WebSocket Proxy  
+✔ Database‑driven virtual trading  
 
-
-and streams real-time ticks.
-
-⭐ Suggestions Component
-
-Auto-suggest crypto symbols for live streaming:
-
-BINANCE:BTCUSDT
-BINANCE:ETHUSDT
-BINANCE:SOLUSDT
-BINANCE:XRPUSDT
-BINANCE:DOGEUSDT
-BINANCE:ADAUSDT
-
-✔ Current Features Implemented
-
- Go backend with REST + WebSocket
-
- PostgreSQL integration
-
- Live realtime streaming using Finnhub WS
-
- React dashboard
-
- Live price UI
-
- Crypto suggestions
-
- Trade form + history
-
- Component separation & clean code
-
-🔮 Upcoming Features
-
- Candlestick charts (Chart.js)
-
- Portfolio P/L calculation
-
- Watchlist with live updates
-
- User login (JWT)
-
- Multi-symbol streaming channels
